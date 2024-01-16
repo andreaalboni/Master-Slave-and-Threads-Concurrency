@@ -28,7 +28,6 @@ int terminated; // to terminate writers
 int n = 0; // number read from master
 int received = 0; // number of writers that have written to buffer
 
-sem_t mutex, barrier;
 pthread_cond_t cond;
 pthread_mutex_t m;
 
@@ -50,21 +49,13 @@ void *writer(void *arg) {
 		pthread_mutex_lock(&m);
 
 			while (received){ 
-				printf("Waiting for signal\n");
+				//printf("Waiting for signal\n");
 				pthread_cond_wait(&cond, &m); }
-			//sem_wait(&mutex);
 			received--;
 			buffer[target] += n;
 			printf("Summing %d, updated buffer[%d] to %d\n", n, target, buffer[target]);
-			display_buffer();
-			//sem_post(&mutex);
-
-			while (received == 0){ 
-				pthread_cond_wait(&cond, &m); }
-			buffer[target] += n;
-			received--;
-			//printf("Summing %d, updated buffer[%d] to %d\n", n, target, buffer[target]);
 			//display_buffer();
+		
 		pthread_mutex_unlock(&m);		
 	
 	}
@@ -74,7 +65,7 @@ void *writer(void *arg) {
 }
 
 int main(void) {
-	sem_init(&mutex, 0, 1);
+	// set up mutex and condition variable
 	pthread_mutex_init(&m, NULL);
 	pthread_cond_init(&cond, NULL);
 
@@ -140,6 +131,8 @@ int main(void) {
 
 	close(fd); // close fifo
 	pthread_mutex_destroy(&m); // destroy mutex
+	pthread_cond_destroy(&cond); // destroy condition variable
+
 
 	// display content of buffer
 	display_buffer();
