@@ -29,7 +29,6 @@ int terminated; // flag to signal termination
 
 // semaphores
 sem_t *sem_sig;
-sem_t *sem_child_ready;
 sem_t *sem_parent_done;
 
 // signal handler
@@ -56,7 +55,6 @@ int main(void) {
 
 	// set up semaphores
 	sem_sig = sem_open("/sem_sig", O_CREAT, 0644, 0);
-	sem_child_ready = sem_open("/sem_child_ready", O_CREAT, 0644, 0);
 	sem_parent_done = sem_open("/sem_parent_done", O_CREAT, 0644, 0);
 
 	// set up signal handler
@@ -72,7 +70,6 @@ int main(void) {
 		exit (1);
 	}
 	else if(pid==0) {
-		sem_post(sem_child_ready); // signal that the child is ready
 
 		sem_wait(sem_parent_done); // wait until the parent is done
 
@@ -111,7 +108,6 @@ int main(void) {
 		puts("All done. Bye!");
 	}
 	else {
-		sem_wait(sem_child_ready); // wait until the child is ready
 
 		printf("Type <kill -%d %d> to send payload\n", SIGUSR1, pid);
 
@@ -124,7 +120,6 @@ int main(void) {
 
 	// tidy up semaphores
 	sem_close(sem_sig);
-	sem_close(sem_child_ready);
 	sem_close(sem_parent_done);
 	sem_unlink("/sem_sig");
 	sem_unlink("/sem_child_ready");

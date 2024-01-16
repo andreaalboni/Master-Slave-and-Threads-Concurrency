@@ -48,7 +48,7 @@ void *writer(void *arg) {
 		// update buffer[target]
 		pthread_mutex_lock(&m);
 
-			while (received){ 
+			while (received == 0){ 
 				//printf("Waiting for signal\n");
 				pthread_cond_wait(&cond, &m); }
 			received--;
@@ -84,12 +84,14 @@ int main(void) {
 	srand(100);
 
 	// set up communication with master
-	int fd = open("/tmp/named_pipe", O_RDONLY);
 	printf("Opening FIFO, waiting for master to be ready...\n");
+
+	int fd = open("/tmp/named_pipe", O_RDONLY);
 	if(fd==-1) {
 		perror("Error opening named pipe");
 		exit (1);
 	}
+	
 	printf("Opened named pipe, master's ready\n");
 
 	// create threads
@@ -107,6 +109,7 @@ int main(void) {
 			perror("Error reading from pipe");
 			exit (1);
 		}
+
 		// if has read a number, let all threads update the buffer
 		received = N_WRITERS;
 		printf("Received %d\n", n);
