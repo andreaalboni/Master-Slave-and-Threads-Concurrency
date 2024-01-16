@@ -86,12 +86,12 @@ int main(void) {
 	// set up communication with master
 	printf("Opening FIFO, waiting for master to be ready...\n");
 
-	int fd = open("/tmp/named_pipe", O_RDONLY);
+	int fd = open("/tmp/named_pipe", O_RDONLY);	
 	if(fd==-1) {
 		perror("Error opening named pipe");
 		exit (1);
 	}
-	
+
 	printf("Opened named pipe, master's ready\n");
 
 	// create threads
