@@ -262,26 +262,22 @@ void upload(monitor_t *mon, vector_t *V)
 {
    pthread_mutex_lock(&mon->mutex);
 
-    while (mon->capacity < size_of(V)) {
+    while (mon->capacity < size_of(V))
         pthread_cond_wait(&mon->can_produce, &mon->mutex);
-    }
 
     to_buffer(mon, V);
 
     if (SVF) 
 	{
         // Shortest Vector First
-        pthread_cond_signal(&mon->can_consume);
     } 
 	else if (LVF) 
 	{
         // Longest Vector First
-        pthread_cond_signal(&mon->can_consume);
     } 
 	else if (FVF) 
 	{
         // First Come First Served
-        pthread_cond_broadcast(&mon->can_consume);
     }
 
     pthread_mutex_unlock(&mon->mutex);
