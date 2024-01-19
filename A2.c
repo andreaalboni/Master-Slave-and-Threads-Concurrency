@@ -47,24 +47,22 @@ typedef struct monitor_t {
     int next_size; // the size of the next vector; 0 if empty buffer
     int capacity; // the size of the longest V that can be uploaded to the buffer
 
+    // synchronization variables and states common to all policies
     pthread_mutex_t mutex;
+    pthread_cond_t can_download3;
+    pthread_cond_t can_download5;
+    pthread_cond_t can_download10;
+    int n_d3, n_d5, n_d10; // number of threads in the corresponding condition variable (dowload)
 
 	// synchronization variables and states for SVF and for LVF
     pthread_cond_t can_upload3;
     pthread_cond_t can_upload5;
     pthread_cond_t can_upload10;
-    int n_d3, n_d5, n_d10; // number of threads in the corresponding condition variable (dowload)
     int n_u3, n_u5, n_u10; // number of threads in the corresponding condition variable (upload)
-    pthread_cond_t can_dowload3;
-    pthread_cond_t can_dowload5;
-    pthread_cond_t can_download10;
 
     // synchronization variables and states for FVF
-    pthread_cond_t can_upload[15];
-    pthread_cond_t can_download3;
-    pthread_cond_t can_download5;
-    pthread_cond_t can_download10;
-    int n_
+    pthread_cond_t can_upload[N_THREADS];
+    int index_in, index_served, n_u; // index of the next thread to upload
 
 } monitor_t;
 
@@ -140,7 +138,7 @@ void from_buffer(monitor_t *mon, vector_t *V) {
 	// if the buffer is empty, set next_size to 0
 	if(mon->capacity==BUFFER_SIZE)
 		mon->next_size=0;
-	printf("consumed V_%d\n", V->size);
+	printf("downloadd V_%d\n", V->size);
 }
 
 // generate a random vector size
@@ -263,93 +261,75 @@ void download(monitor_t *mon, int k, vector_t *V)
 {
     pthread_mutex_lock(&mon->mutex);
 
-    if (SVF) 
-    {
-        // Shortest Vector First to upload
-        while(mon->next_size == 0 || mon->next_size > k)
+    while(mon->next_size == 0 || mon->next_size > k)
         {
-            if (k == 10)
+            if (k == 3)
             {
-                mon->n_c10++;
-                printf("Thread %lu waiting to consume 10\n", pthread_self());
+                mon->n_d3++;
+                printf("Thread %lu waiting to download 3\n", pthread_self());
                 printf("\n");
-                pthread_cond_wait(&mon->can_consume10, &mon->mutex);
-                mon->n_c10--;
+                pthread_cond_wait(&mon->can_download3, &mon->mutex);
+                mon->n_d3--;
             }
             else if (k == 5)
             {
-                mon->n_c5++;
-                printf("Thread %lu waiting to consume 5\n", pthread_self());
+                mon->n_d5++;
+                printf("Thread %lu waiting to download 5\n", pthread_self());
                 printf("\n");
-                pthread_cond_wait(&mon->can_consume5, &mon->mutex);
-                mon->n_c5--;
+                pthread_cond_wait(&mon->can_download5, &mon->mutex);
+                mon->n_d5--;
             }
-            else if (k == 3)
+            else if (k == 10)
             {
-                mon->n_c3++;
-                printf("Thread %lu waiting to consume 3\n", pthread_self());
+                mon->n_d10++;
+                printf("Thread %lu waiting to download 10\n", pthread_self());
                 printf("\n");
-                pthread_cond_wait(&mon->can_consume3, &mon->mutex);
-                mon->n_c3--;
+                pthread_cond_wait(&mon->can_download10, &mon->mutex);
+                mon->n_d10--;
             }
         }
-        from_buffer(mon, V);
-        // signal the threads that can produce, shortest first
-        if (mon->n_p3 > 0 && mon->capacity >= 3)
+    from_buffer(mon, V);
+
+    if (SVF) 
+    {
+        // Shortest Vector First to upload
+        if (mon->n_u3 > 0 && mon->capacity >= 3)
         {
-            pthread_cond_signal(&mon->can_produce3);
+            pthread_cond_signal(&mon->can_upload3);
         }
-        else if (mon->n_p5 > 0 && mon->capacity >= 5)
+        else if (mon->n_u5 > 0 && mon->capacity >= 5)
         {
-            pthread_cond_signal(&mon->can_produce5);
+            pthread_cond_signal(&mon->can_upload5);
         }
-        else if (mon->n_p10 > 0  && mon->capacity >= 10)
+        else if (mon->n_u10 > 0  && mon->capacity >= 10)
         {
-            pthread_cond_signal(&mon->can_produce10);
+            pthread_cond_signal(&mon->can_upload10);
         }
     } 
     else if (LVF) 
     {
         // Longest Vector First to upload
-        while(mon->next_size == 0 || mon->next_size > k)
+        if (mon->n_u10 > 0 && mon->capacity >= 10)
         {
-            if (k == 10)
-            {
-                mon->n_c10++;
-                pthread_cond_wait(&mon->can_consume10, &mon->mutex);
-                mon->n_c10--;
-            }
-            else if (k == 5)
-            {
-                mon->n_c5++;
-                pthread_cond_wait(&mon->can_consume5, &mon->mutex);
-                mon->n_c5--;
-            }
-            else if (k == 3)
-            {
-                mon->n_c3++;
-                pthread_cond_wait(&mon->can_consume3, &mon->mutex);
-                mon->n_c3--;
-            }
+            pthread_cond_signal(&mon->can_upload10);
         }
-        from_buffer(mon, V);
-        // signal the threads that can produce, longest first
-        if (mon->n_p10 > 0 && mon->capacity >= 10)
+        else if (mon->n_u5 > 0 && mon->capacity >= 5)
         {
-            pthread_cond_signal(&mon->can_produce10);
+            pthread_cond_signal(&mon->can_upload5);
         }
-        else if (mon->n_p5 > 0 && mon->capacity >= 5)
+        else if (mon->n_u3 > 0 && mon->capacity >= 3)
         {
-            pthread_cond_signal(&mon->can_produce5);
-        }
-        else if (mon->n_p3 > 0 && mon->capacity >= 3)
-        {
-            pthread_cond_signal(&mon->can_produce3);
+            pthread_cond_signal(&mon->can_upload3);
         }
     } 
     else if (FVF) 
     {
         // First Come First Served to upload
+        if (mon->n_u > 0)
+        {
+            pthread_cond_signal(&mon->can_upload[mon->index_served]);
+            mon->index_served = (mon->index_served + 1) % N_THREADS;
+        }
     }
 
     pthread_mutex_unlock(&mon->mutex);
@@ -357,7 +337,7 @@ void download(monitor_t *mon, int k, vector_t *V)
 
 void upload(monitor_t *mon, vector_t *V) 
 {
-   pthread_mutex_lock(&mon->mutex);
+    pthread_mutex_lock(&mon->mutex);
 
     if (SVF || LVF) 
 	{
@@ -366,42 +346,51 @@ void upload(monitor_t *mon, vector_t *V)
         {
             if (V->size == 10)
             {
-                mon->n_p10++;
-                pthread_cond_wait(&mon->can_produce10, &mon->mutex);
-                mon->n_p10--;
+                mon->n_u10++;
+                pthread_cond_wait(&mon->can_upload10, &mon->mutex);
+                mon->n_u10--;
             }
             else if (V->size == 5)
             {
-                mon->n_p5++;
-                pthread_cond_wait(&mon->can_produce5, &mon->mutex);
-                mon->n_p5--;
+                mon->n_u5++;
+                pthread_cond_wait(&mon->can_upload5, &mon->mutex);
+                mon->n_u5--;
             }
             else if (V->size == 3)
             {
-                mon->n_p3++;
-                pthread_cond_wait(&mon->can_produce3, &mon->mutex);
-                mon->n_p3--;
+                mon->n_u3++;
+                pthread_cond_wait(&mon->can_upload3, &mon->mutex);
+                mon->n_u3--;
             }
         }
         to_buffer(mon, V);
         mon->next_size = V->size;
-        // signal the threads that can consume
-        if (mon->n_c10 > 0)
+        // signal the threads that can download
+        if (mon->n_d10 > 0)
         {
-            pthread_cond_signal(&mon->can_consume10);
+            pthread_cond_signal(&mon->can_download10);
         }
-        else if (mon->n_c5 > 0)
+        else if (mon->n_d5 > 0)
         {
-            pthread_cond_signal(&mon->can_consume5);
+            pthread_cond_signal(&mon->can_download5);
         }
-        else if (mon->n_c3 > 0)
+        else if (mon->n_d3 > 0)
         {
-            pthread_cond_signal(&mon->can_consume3);
+            pthread_cond_signal(&mon->can_download3);
         }
     } 
 	else if (FVF) 
 	{
         // First Come First Served
+        while(mon->n_u > 0 || mon->capacity < size_of(V))
+        {
+            mon->n_u ++;
+            mon->index_in = (mon->index_in + 1) % N_THREADS;
+            pthread_cond_wait(&mon->can_upload[mon->index_in], &mon->mutex);
+            mon->n_u --;
+        }
+        to_buffer(mon, V);
+        mon->next_size = V->size;
     }
 
     pthread_mutex_unlock(&mon->mutex);
@@ -409,22 +398,33 @@ void upload(monitor_t *mon, vector_t *V)
 
 void monitor_init(monitor_t *mon)
 {
+    // initialization of tools commmon to all policies
+    pthread_mutex_init(&mon->mutex, NULL);
+    pthread_cond_init(&mon->can_download3, NULL);
+    pthread_cond_init(&mon->can_download5, NULL);
+    pthread_cond_init(&mon->can_download10, NULL);
+    mon->n_d3 = 0;
+    mon->n_d5 = 0;
+    mon->n_d10 = 0;
+
+
     // for SVF and LVF
     pthread_mutex_init(&mon->mutex, NULL);
-    pthread_cond_init(&mon->can_produce3, NULL);
-    pthread_cond_init(&mon->can_produce5, NULL);
-    pthread_cond_init(&mon->can_produce10, NULL);
-    pthread_cond_init(&mon->can_consume3, NULL);
-    pthread_cond_init(&mon->can_consume5, NULL);
-    pthread_cond_init(&mon->can_consume10, NULL);
-    mon->n_c3 = 0;
-    mon->n_c5 = 0;
-    mon->n_c10 = 0;
-    mon->n_p3 = 0;
-    mon->n_p5 = 0;
-    mon->n_p10 = 0;
+    pthread_cond_init(&mon->can_upload3, NULL);
+    pthread_cond_init(&mon->can_upload5, NULL);
+    pthread_cond_init(&mon->can_upload10, NULL);
+    mon->n_u3 = 0;
+    mon->n_u5 = 0;
+    mon->n_u10 = 0;
 
     // for FVF
+    for (int i = 0; i < N_THREADS; i++)
+    {
+        pthread_cond_init(&mon->can_upload[i], NULL);
+    }
+    mon->index_served = 0;
+    mon->index_in = -1;
+    mon->n_u = 0;
 
     mon->in = 0;
     mon->out = 0;
@@ -434,14 +434,21 @@ void monitor_init(monitor_t *mon)
 
 void monitor_destroy(monitor_t *mon) 
 {
-    // for SVF and LVF
     pthread_mutex_destroy(&mon->mutex);
-    pthread_cond_destroy(&mon->can_produce3);
-    pthread_cond_destroy(&mon->can_produce5);
-    pthread_cond_destroy(&mon->can_produce10);
-    pthread_cond_destroy(&mon->can_consume3);
-    pthread_cond_destroy(&mon->can_consume5);
-    pthread_cond_destroy(&mon->can_consume10);
+    
+    // for SVF and LVF
+    pthread_cond_destroy(&mon->can_upload3);
+    pthread_cond_destroy(&mon->can_upload5);
+    pthread_cond_destroy(&mon->can_upload10);
+    pthread_cond_destroy(&mon->can_download3);
+    pthread_cond_destroy(&mon->can_download5);
+    pthread_cond_destroy(&mon->can_download10);
+
+    // for FVF
+    pthread_cond_destroy(&mon->can_upload[N_THREADS]);
+    pthread_cond_destroy(&mon->can_download3);
+    pthread_cond_destroy(&mon->can_download5);
+    pthread_cond_destroy(&mon->can_download10);  
 }
 
 // MAIN FUNCTION
