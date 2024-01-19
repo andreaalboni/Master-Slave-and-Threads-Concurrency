@@ -47,18 +47,25 @@ typedef struct monitor_t {
     int next_size; // the size of the next vector; 0 if empty buffer
     int capacity; // the size of the longest V that can be uploaded to the buffer
 
-	// synchronization variables and states for SVF and for LVF
     pthread_mutex_t mutex;
-    pthread_cond_t can_produce3;
-    pthread_cond_t can_produce5;
-    pthread_cond_t can_produce10;
-    int n_c3, n_c5, n_c10; // number of threads in the corresponding condition variable (consume)
-    int n_p3, n_p5, n_p10; // number of threads in the corresponding condition variable (produce)
-    pthread_cond_t can_consume3;
-    pthread_cond_t can_consume5;
-    pthread_cond_t can_consume10;
+
+	// synchronization variables and states for SVF and for LVF
+    pthread_cond_t can_upload3;
+    pthread_cond_t can_upload5;
+    pthread_cond_t can_upload10;
+    int n_d3, n_d5, n_d10; // number of threads in the corresponding condition variable (dowload)
+    int n_u3, n_u5, n_u10; // number of threads in the corresponding condition variable (upload)
+    pthread_cond_t can_dowload3;
+    pthread_cond_t can_dowload5;
+    pthread_cond_t can_download10;
 
     // synchronization variables and states for FVF
+    pthread_cond_t can_upload[15];
+    pthread_cond_t can_download3;
+    pthread_cond_t can_download5;
+    pthread_cond_t can_download10;
+    int n_
+
 } monitor_t;
 
 // GLOBAL VARIABLES
