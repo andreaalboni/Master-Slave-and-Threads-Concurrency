@@ -365,19 +365,6 @@ void upload(monitor_t *mon, vector_t *V)
         }
         to_buffer(mon, V);
         mon->next_size = V->size;
-        // signal the threads that can download
-        if (mon->n_d10 > 0)
-        {
-            pthread_cond_signal(&mon->can_download10);
-        }
-        else if (mon->n_d5 > 0)
-        {
-            pthread_cond_signal(&mon->can_download5);
-        }
-        else if (mon->n_d3 > 0)
-        {
-            pthread_cond_signal(&mon->can_download3);
-        }
     } 
 	else if (FVF) 
 	{
@@ -391,6 +378,20 @@ void upload(monitor_t *mon, vector_t *V)
         }
         to_buffer(mon, V);
         mon->next_size = V->size;
+    }
+
+    // signal the threads that can download
+    if (mon->n_d10 > 0 && mon->next_size == 10)
+    {
+        pthread_cond_signal(&mon->can_download10);
+    }
+    else if (mon->n_d5 > 0 && mon->next_size == 5)
+    {
+        pthread_cond_signal(&mon->can_download5);
+    }
+    else if (mon->n_d3 > 0 && mon->next_size == 3)
+    {
+        pthread_cond_signal(&mon->can_download3);
     }
 
     pthread_mutex_unlock(&mon->mutex);
