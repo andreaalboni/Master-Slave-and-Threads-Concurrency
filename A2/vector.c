@@ -4,6 +4,9 @@
 #include <pthread.h>
 #include <sys/types.h>
 
+// library for calculating wait time
+#include <time.h>
+
 // CONSTANTS AND MACROS
 // for readability
 #define N_THREADS 15
@@ -84,6 +87,11 @@ typedef struct monitor_t {
     pthread_cond_t can_upload[N_THREADS];
     int index_in, index_served, n_u; // index of the next thread to upload
     #endif
+
+    // variable for calculating wait time
+    double wait_time;
+    int num_wait;
+    int num_iter;
 
 } monitor_t;
 
@@ -375,10 +383,12 @@ void upload(monitor_t *mon, vector_t *V)
     pthread_mutex_lock(&mon->mutex);
 
     #ifndef FVF
-	
         // Shortest Vector First or Longest Vector First 
         while(mon->capacity < size_of(V))
         {
+            struct timespec start, end;
+            clock_gettime(CLOCK_REALTIME, &start);
+
             if (V->size == 10)
             {
                 mon->n_u10++;
@@ -397,21 +407,44 @@ void upload(monitor_t *mon, vector_t *V)
                 pthread_cond_wait(&mon->can_upload3, &mon->mutex);
                 mon->n_u3--;
             }
+
+            clock_gettime(CLOCK_REALTIME, &end);
+            mon->wait_time += (end.tv_nsec - start.tv_nsec);
+            mon->num_wait ++;
+            printf("####################################### Thread %lu waited %lu nanoseconds to upload\n", pthread_self(), (end.tv_nsec - start.tv_nsec));
+            printf("\n");
+            printf("####################################### Average wait time: %f nanoseconds in %d wait iteration, %d total iteration\n", mon->wait_time / mon->num_wait, mon->num_wait, mon->num_iter);
+            printf("\n");
         }
+        mon->num_iter ++;
         to_buffer(mon, V);
     
     #endif
 
     #ifdef FVF
 
+
+
         // First Come First Served
         while(mon->n_u > 0 || mon->capacity < size_of(V))
         {
+            struct timespec start, end;
+            clock_gettime(CLOCK_REALTIME, &start);
+            
             mon->n_u ++;
             mon->index_in = (mon->index_in + 1) % N_THREADS;
             pthread_cond_wait(&mon->can_upload[mon->index_in], &mon->mutex);
             mon->n_u --;
+
+            clock_gettime(CLOCK_REALTIME, &end);
+            mon->wait_time += (end.tv_nsec - start.tv_nsec);
+            mon->num_wait ++;
+            printf("####################################### Thread %lu waited %lu nanoseconds to upload\n", pthread_self(), (end.tv_nsec - start.tv_nsec));
+            printf("\n");
+            printf("####################################### Average wait time: %f nanoseconds in %d wait iteration, %d total iteration\n", mon->wait_time / mon->num_wait, mon->num_wait, mon->num_iter);
+            printf("\n");
         }
+        mon->num_iter ++;
         to_buffer(mon, V);
     
     #endif
@@ -471,7 +504,13 @@ void monitor_init(monitor_t *mon)
     mon->out = 0;
     mon->next_size = 0;
     mon->capacity = BUFFER_SIZE;
+
+    // initialize variable for calculating wait time
+    mon->wait_time = 0;
+    mon->num_wait = 0;
+    mon->num_iter = 0;
 }
+
 
 void monitor_destroy(monitor_t *mon) 
 {
@@ -515,7 +554,7 @@ int main(void) {
         init_vector(&V);
         to_buffer(&mon,&V);
     }
-    printf("Buffer filled.\n");
+    printf("Buffer iniziliazed.\n");
 
 	show_buffer(&mon);
 
@@ -556,23 +595,23 @@ void *thread(void *arg) {
 	printf("Thread %s started.\n", name);
 	FOREVER { // or any number of times
 		download(&mon,k,&Vin);
-		printf("Thread %s downloaded ", name); show_vector(&Vin);
+		// printf("Thread %s downloaded ", name); show_vector(&Vin);
 
         // //input to go on with the program
         // printf("Press enter to continue\n");
         // getchar();
 
 		multiply(&M,&Vin,&Vout);
-		printf("Thread %s obtained ", name); show_vector(&Vout);
+		// printf("Thread %s obtained ", name); show_vector(&Vout);
 
         // //input to go on with the program
         // printf("Press enter to continue\n");
         // getchar();
 
 		upload(&mon,&Vout);
-		printf("Thread %s updated buffer. ", name);
+		// printf("Thread %s updated buffer. ", name);
 		// printf("Monitor sanity checked %s\n", sanity_check(&mon)?"passed":"failed");
-		show_buffer(&mon);
+		// show_buffer(&mon);
             
         // //input to go on with the program
         // printf("Press enter to continue\n");
