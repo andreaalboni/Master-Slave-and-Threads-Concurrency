@@ -1,12 +1,4 @@
-/*
- ============================================================================
- Name        : A1-Master.c
- Author      : Andrea Alboni
- Version     : 1
- Copyright   : For personal use only
- Description : Template for A1's master program
- ============================================================================
-*/
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -121,10 +113,10 @@ int main(void) {
 	// tidy up semaphores
 	sem_close(sem_sig);
 	sem_close(sem_parent_done);
+
+	// unlink semaphores
 	sem_unlink("/sem_sig");
-	sem_unlink("/sem_child_ready");
 	sem_unlink("/sem_parent_done");
-	sem_unlink("/sem_child_done");
 
 	return EXIT_SUCCESS;
 }

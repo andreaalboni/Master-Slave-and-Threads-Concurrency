@@ -1,12 +1,4 @@
-/*
- ============================================================================
- Name        : A1-Slave.c
- Author      : Andrea Alboni
- Version     : 1
- Copyright   : For personal use only
- Description : Template for A1's slave program
- ============================================================================
- */
+
 
 #include <stdio.h>
 #include <stdlib.h>
