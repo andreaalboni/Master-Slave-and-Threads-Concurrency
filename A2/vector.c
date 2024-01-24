@@ -7,7 +7,7 @@
 // CONSTANTS AND MACROS
 // for readability
 #define N_THREADS 4 //15
-#define FOREVER for(;;)
+#define FOREVER for(int i=0;i<4;i++)
 #define BUFFER_SIZE 30 // buffer size
 #define MAX_VSIZE 10 // max size of vectors (possible sizes: 3, 5, 10)
 #define MAX_ITERATIONS 200
@@ -15,8 +15,8 @@
 #define MIN_LOOPS 5
 
 //define policies
-#define FVF 0
-#define SVF 1
+#define FVF 1
+#define SVF 0
 #define LVF 0
 
 // for simplicity, vectors are always size 10 and matrices are 10x10
@@ -138,6 +138,8 @@ void from_buffer(monitor_t *mon, vector_t *V) {
 	// if the buffer is empty, set next_size to 0
 	if(mon->capacity==BUFFER_SIZE)
 		mon->next_size=0;
+    //update next_size
+    mon->next_size = mon->buffer[mon->out];
 	printf("downloadd V_%d\n", V->size);
 }
 
@@ -364,7 +366,6 @@ void upload(monitor_t *mon, vector_t *V)
             }
         }
         to_buffer(mon, V);
-        mon->next_size = V->size;
     } 
 	else if (FVF) 
 	{
@@ -377,7 +378,6 @@ void upload(monitor_t *mon, vector_t *V)
             mon->n_u --;
         }
         to_buffer(mon, V);
-        mon->next_size = V->size;
     }
 
     // signal the threads that can download
@@ -461,7 +461,15 @@ int main(void) {
     // initialize monitor data structure before creating the threads
     srand(42);
 	monitor_init(&mon);
-	// printf("Monitor sanity checked %s\n", sanity_check(&mon)?"passed":"failed");
+	printf("Monitor sanity checked %s\n", sanity_check(&mon)?"passed":"failed");
+
+    //fill the buffer with some vectors
+    while(mon.capacity>BUFFER_SIZE/2) {
+        vector_t V;
+        init_vector(&V);
+        to_buffer(&mon,&V);
+    }
+
 	show_buffer(&mon);
 
 	printf("Creating %d threads...\n", N_THREADS);
@@ -477,7 +485,7 @@ int main(void) {
     for (i=0;i<N_THREADS;i++) {
         pthread_join(my_threads[i], NULL);
     }
-	// printf("Monitor sanity checked %s\n", sanity_check(&mon)?"passed":"failed");
+	printf("Monitor sanity checked %s\n", sanity_check(&mon)?"passed":"failed");
 
 
     // free OS resources occupied by the monitor after creating the threads
