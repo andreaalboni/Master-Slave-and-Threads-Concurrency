@@ -22,6 +22,8 @@
 // #define SVF
 // #define LVF
 
+//#define TEST // uncomment to test wait time
+
 //one of the policies must be defined
 #if !defined(FVF) && !defined(SVF) && !defined(LVF)
     #error "One of the policies must be defined"
@@ -88,10 +90,13 @@ typedef struct monitor_t {
     int index_in, index_served, n_u; // index of the next thread to upload
     #endif
 
+    #ifdef TEST
     // variable for calculating wait time
     double wait_time;
     int num_wait;
     int num_iter;
+    int max_wait;
+    #endif
 
 } monitor_t;
 
@@ -169,7 +174,7 @@ void from_buffer(monitor_t *mon, vector_t *V) {
 		mon->next_size=0;
     //update next_size
     mon->next_size = mon->buffer[mon->out];
-	printf("downloadd V_%d\n", V->size);
+	printf("download V_%d\n", V->size);
 }
 
 // generate a random vector size
@@ -385,9 +390,11 @@ void upload(monitor_t *mon, vector_t *V)
     #ifndef FVF
         // Shortest Vector First or Longest Vector First 
         while(mon->capacity < size_of(V))
-        {
+        {   
+            #ifdef TEST
             struct timespec start, end;
             clock_gettime(CLOCK_REALTIME, &start);
+            #endif
 
             if (V->size == 10)
             {
@@ -408,6 +415,7 @@ void upload(monitor_t *mon, vector_t *V)
                 mon->n_u3--;
             }
 
+            #ifdef TEST
             clock_gettime(CLOCK_REALTIME, &end);
             mon->wait_time += (end.tv_nsec - start.tv_nsec);
             mon->num_wait ++;
@@ -415,27 +423,31 @@ void upload(monitor_t *mon, vector_t *V)
             printf("\n");
             printf("####################################### Average wait time: %f nanoseconds in %d wait iteration, %d total iteration\n", mon->wait_time / mon->num_wait, mon->num_wait, mon->num_iter);
             printf("\n");
+            #endif
         }
+        #ifdef TEST
         mon->num_iter ++;
+        #endif
         to_buffer(mon, V);
     
     #endif
 
     #ifdef FVF
 
-
-
         // First Come First Served
         while(mon->n_u > 0 || mon->capacity < size_of(V))
         {
+            #ifdef TEST
             struct timespec start, end;
             clock_gettime(CLOCK_REALTIME, &start);
+            #endif
             
             mon->n_u ++;
             mon->index_in = (mon->index_in + 1) % N_THREADS;
             pthread_cond_wait(&mon->can_upload[mon->index_in], &mon->mutex);
             mon->n_u --;
 
+            #ifdef TEST
             clock_gettime(CLOCK_REALTIME, &end);
             mon->wait_time += (end.tv_nsec - start.tv_nsec);
             mon->num_wait ++;
@@ -443,8 +455,11 @@ void upload(monitor_t *mon, vector_t *V)
             printf("\n");
             printf("####################################### Average wait time: %f nanoseconds in %d wait iteration, %d total iteration\n", mon->wait_time / mon->num_wait, mon->num_wait, mon->num_iter);
             printf("\n");
+            #endif
         }
+        #ifdef TEST
         mon->num_iter ++;
+        #endif
         to_buffer(mon, V);
     
     #endif
@@ -505,10 +520,13 @@ void monitor_init(monitor_t *mon)
     mon->next_size = 0;
     mon->capacity = BUFFER_SIZE;
 
+    #ifdef TEST
     // initialize variable for calculating wait time
     mon->wait_time = 0;
     mon->num_wait = 0;
     mon->num_iter = 0;
+    mon->max_wait = 0;
+    #endif
 }
 
 
