@@ -15,9 +15,26 @@
 #define MIN_LOOPS 5
 
 //define policies
-#define FVF 1
-#define SVF 0
-#define LVF 0
+#define FVF
+// #define SVF
+// #define LVF
+
+//one of the policies must be defined
+#if !defined(FVF) && !defined(SVF) && !defined(LVF)
+    #error "One of the policies must be defined"
+#endif
+
+//only one of the policies must be defined
+#if defined(FVF) && defined(SVF)
+    #error "Only one of the policies must be defined"
+#endif
+#if defined(FVF) && defined(LVF)
+    #error "Only one of the policies must be defined"
+#endif
+#if defined(SVF) && defined(LVF)
+    #error "Only one of the policies must be defined"
+#endif
+
 
 // for simplicity, vectors are always size 10 and matrices are 10x10
 // then, part of the space will be unused, no big deal
@@ -54,15 +71,19 @@ typedef struct monitor_t {
     pthread_cond_t can_download10;
     int n_d3, n_d5, n_d10; // number of threads in the corresponding condition variable (dowload)
 
+    #ifndef FVF
 	// synchronization variables and states for SVF and for LVF
     pthread_cond_t can_upload3;
     pthread_cond_t can_upload5;
     pthread_cond_t can_upload10;
     int n_u3, n_u5, n_u10; // number of threads in the corresponding condition variable (upload)
+    #endif
 
+    #ifdef FVF
     // synchronization variables and states for FVF
     pthread_cond_t can_upload[N_THREADS];
     int index_in, index_served, n_u; // index of the next thread to upload
+    #endif
 
 } monitor_t;
 
@@ -299,8 +320,8 @@ void download(monitor_t *mon, int k, vector_t *V)
     }
     from_buffer(mon, V);
 
-    if (SVF) 
-    {
+    #ifdef SVF
+
         // Shortest Vector First to upload
         if (mon->n_u3 > 0 && mon->capacity >= 3)
         {
@@ -314,9 +335,11 @@ void download(monitor_t *mon, int k, vector_t *V)
         {
             pthread_cond_signal(&mon->can_upload10);
         }
-    } 
-    else if (LVF) 
-    {
+
+    #endif
+
+    #ifdef LVF
+    
         // Longest Vector First to upload
         if (mon->n_u10 > 0 && mon->capacity >= 10)
         {
@@ -330,16 +353,19 @@ void download(monitor_t *mon, int k, vector_t *V)
         {
             pthread_cond_signal(&mon->can_upload3);
         }
-    } 
-    else if (FVF) 
-    {
+
+    #endif
+
+    #ifdef FVF
+
         // First Come First Served to upload
-        if (mon->n_u > 0)
+        if (mon->n_u > 0 && mon->capacity >= 10)
         {
             pthread_cond_signal(&mon->can_upload[mon->index_served]);
             mon->index_served = (mon->index_served + 1) % N_THREADS;
         }
-    }
+
+    #endif
 
     pthread_mutex_unlock(&mon->mutex);
 }
@@ -348,8 +374,8 @@ void upload(monitor_t *mon, vector_t *V)
 {
     pthread_mutex_lock(&mon->mutex);
 
-    if (SVF || LVF) 
-	{
+    #ifndef FVF
+	
         // Shortest Vector First or Longest Vector First 
         while(mon->capacity < size_of(V))
         {
@@ -373,9 +399,11 @@ void upload(monitor_t *mon, vector_t *V)
             }
         }
         to_buffer(mon, V);
-    } 
-	else if (FVF) 
-	{
+    
+    #endif
+
+    #ifdef FVF
+
         // First Come First Served
         while(mon->n_u > 0 || mon->capacity < size_of(V))
         {
@@ -385,7 +413,8 @@ void upload(monitor_t *mon, vector_t *V)
             mon->n_u --;
         }
         to_buffer(mon, V);
-    }
+    
+    #endif
 
     // signal the threads that can download
     if (mon->n_d10 > 0 && mon->next_size == 10)
@@ -415,7 +444,7 @@ void monitor_init(monitor_t *mon)
     mon->n_d5 = 0;
     mon->n_d10 = 0;
 
-
+    #ifndef FVF
     // for SVF and LVF
     pthread_cond_init(&mon->can_upload3, NULL);
     pthread_cond_init(&mon->can_upload5, NULL);
@@ -424,6 +453,9 @@ void monitor_init(monitor_t *mon)
     mon->n_u5 = 0;
     mon->n_u10 = 0;
 
+    #endif
+
+    #ifdef FVF
     // for FVF
     for (int i = 0; i < N_THREADS; i++)
     {
@@ -432,6 +464,8 @@ void monitor_init(monitor_t *mon)
     mon->index_served = 0;
     mon->index_in = -1;
     mon->n_u = 0;
+
+    #endif
 
     mon->in = 0;
     mon->out = 0;
@@ -443,6 +477,7 @@ void monitor_destroy(monitor_t *mon)
 {
     pthread_mutex_destroy(&mon->mutex);
     
+    #ifndef FVF
     // for SVF and LVF
     pthread_cond_destroy(&mon->can_upload3);
     pthread_cond_destroy(&mon->can_upload5);
@@ -450,12 +485,15 @@ void monitor_destroy(monitor_t *mon)
     pthread_cond_destroy(&mon->can_download3);
     pthread_cond_destroy(&mon->can_download5);
     pthread_cond_destroy(&mon->can_download10);
+    #endif
 
+    #ifdef FVF
     // for FVF
     pthread_cond_destroy(&mon->can_upload[N_THREADS]);
     pthread_cond_destroy(&mon->can_download3);
     pthread_cond_destroy(&mon->can_download5);
     pthread_cond_destroy(&mon->can_download10);  
+    #endif
 }
 
 // MAIN FUNCTION
