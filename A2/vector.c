@@ -6,8 +6,8 @@
 
 // CONSTANTS AND MACROS
 // for readability
-#define N_THREADS 4 //15
-#define FOREVER for(int i=0;i<4;i++)
+#define N_THREADS 15
+#define FOREVER for(;;)
 #define BUFFER_SIZE 30 // buffer size
 #define MAX_VSIZE 10 // max size of vectors (possible sizes: 3, 5, 10)
 #define MAX_ITERATIONS 200
@@ -264,32 +264,39 @@ void download(monitor_t *mon, int k, vector_t *V)
     pthread_mutex_lock(&mon->mutex);
 
     while(mon->next_size == 0 || mon->next_size > k)
+    {
+        if (k == 3)
         {
-            if (k == 3)
-            {
-                mon->n_d3++;
-                printf("Thread %lu waiting to download 3\n", pthread_self());
-                printf("\n");
-                pthread_cond_wait(&mon->can_download3, &mon->mutex);
-                mon->n_d3--;
-            }
-            else if (k == 5)
-            {
-                mon->n_d5++;
-                printf("Thread %lu waiting to download 5\n", pthread_self());
-                printf("\n");
-                pthread_cond_wait(&mon->can_download5, &mon->mutex);
-                mon->n_d5--;
-            }
-            else if (k == 10)
-            {
-                mon->n_d10++;
-                printf("Thread %lu waiting to download 10\n", pthread_self());
-                printf("\n");
-                pthread_cond_wait(&mon->can_download10, &mon->mutex);
-                mon->n_d10--;
-            }
+            mon->n_d3++;
+            printf("Thread %lu waiting to download 3\n", pthread_self());
+            printf("\n");
+            pthread_cond_wait(&mon->can_download3, &mon->mutex);
+            mon->n_d3--;
         }
+        else if (k == 5)
+        {
+            mon->n_d5++;
+            printf("Thread %lu waiting to download 5\n", pthread_self());
+            printf("\n");
+            pthread_cond_wait(&mon->can_download5, &mon->mutex);
+            mon->n_d5--;
+        }
+        else if (k == 10)
+        {
+            mon->n_d10++;
+            printf("Thread %lu waiting to download 10\n", pthread_self());
+            printf("\n");
+            pthread_cond_wait(&mon->can_download10, &mon->mutex);
+            mon->n_d10--;
+        }
+
+        //se buffer is empty print message
+        if (mon->next_size == 0)
+        {
+            printf("Buffer is empty\n");
+            printf("\n");
+        }
+    }
     from_buffer(mon, V);
 
     if (SVF) 
@@ -464,11 +471,13 @@ int main(void) {
 	printf("Monitor sanity checked %s\n", sanity_check(&mon)?"passed":"failed");
 
     //fill the buffer with some vectors
+    printf("Filling the buffer...\n");
     while(mon.capacity>BUFFER_SIZE/2) {
         vector_t V;
         init_vector(&V);
         to_buffer(&mon,&V);
     }
+    printf("Buffer filled.\n");
 
 	show_buffer(&mon);
 
@@ -504,18 +513,33 @@ void *thread(void *arg) {
 	matrix_t M;
 
 	init_matrix(&M,k,o); // initialize matrix, with k rows and o columns
-	show_matrix(&M);
+	// show_matrix(&M);
 
 	printf("Thread %s started.\n", name);
 	FOREVER { // or any number of times
 		download(&mon,k,&Vin);
-		//printf("Thread %s downloaded ", name); show_vector(&Vin);
+		printf("Thread %s downloaded ", name); show_vector(&Vin);
+
+        // //input to go on with the program
+        // printf("Press enter to continue\n");
+        // getchar();
+
 		multiply(&M,&Vin,&Vout);
-		//printf("Thread %s obtained ", name); show_vector(&Vout);
+		printf("Thread %s obtained ", name); show_vector(&Vout);
+
+        // //input to go on with the program
+        // printf("Press enter to continue\n");
+        // getchar();
+
 		upload(&mon,&Vout);
-		//printf("Thread %s updated buffer. ", name);
-		//printf("Monitor sanity checked %s\n", sanity_check(&mon)?"passed":"failed");
-		//show_buffer(&mon);
+		printf("Thread %s updated buffer. ", name);
+		// printf("Monitor sanity checked %s\n", sanity_check(&mon)?"passed":"failed");
+		show_buffer(&mon);
+            
+        // //input to go on with the program
+        // printf("Press enter to continue\n");
+        // getchar();
+
 		spend_some_time(MIN_LOOPS+rand()%(WAIT_LOOPS+1)); // optionally, to add some randomness and slow down output
 	}
 	printf("Thread %s finished.\n", name);
