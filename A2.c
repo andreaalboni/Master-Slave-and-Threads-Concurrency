@@ -410,7 +410,6 @@ void monitor_init(monitor_t *mon)
 
 
     // for SVF and LVF
-    pthread_mutex_init(&mon->mutex, NULL);
     pthread_cond_init(&mon->can_upload3, NULL);
     pthread_cond_init(&mon->can_upload5, NULL);
     pthread_cond_init(&mon->can_upload10, NULL);
