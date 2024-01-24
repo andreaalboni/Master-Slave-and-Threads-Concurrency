@@ -18,11 +18,11 @@
 #define MIN_LOOPS 5
 
 //define policies
-#define FVF
+// #define FVF
 // #define SVF
-// #define LVF
+#define LVF
 
-//#define TEST // uncomment to test wait time
+#define TEST // uncomment to test wait time
 
 //one of the policies must be defined
 #if !defined(FVF) && !defined(SVF) && !defined(LVF)
@@ -419,10 +419,16 @@ void upload(monitor_t *mon, vector_t *V)
             clock_gettime(CLOCK_REALTIME, &end);
             mon->wait_time += (end.tv_nsec - start.tv_nsec);
             mon->num_wait ++;
+            // implement max wait time
+            if ((end.tv_nsec - start.tv_nsec) > mon->max_wait)
+            {
+                mon->max_wait = (end.tv_nsec - start.tv_nsec);
+            }
             printf("####################################### Thread %lu waited %lu nanoseconds to upload\n", pthread_self(), (end.tv_nsec - start.tv_nsec));
             printf("\n");
             printf("####################################### Average wait time: %f nanoseconds in %d wait iteration, %d total iteration\n", mon->wait_time / mon->num_wait, mon->num_wait, mon->num_iter);
             printf("\n");
+            printf("####################################### Max wait time: %d nanoseconds\n", mon->max_wait);
             #endif
         }
         #ifdef TEST
@@ -451,10 +457,16 @@ void upload(monitor_t *mon, vector_t *V)
             clock_gettime(CLOCK_REALTIME, &end);
             mon->wait_time += (end.tv_nsec - start.tv_nsec);
             mon->num_wait ++;
+            // implement max wait time
+            if ((end.tv_nsec - start.tv_nsec) > mon->max_wait)
+            {
+                mon->max_wait = (end.tv_nsec - start.tv_nsec);
+            }
             printf("####################################### Thread %lu waited %lu nanoseconds to upload\n", pthread_self(), (end.tv_nsec - start.tv_nsec));
             printf("\n");
             printf("####################################### Average wait time: %f nanoseconds in %d wait iteration, %d total iteration\n", mon->wait_time / mon->num_wait, mon->num_wait, mon->num_iter);
             printf("\n");
+            printf("####################################### Max wait time: %d nanoseconds\n", mon->max_wait);
             #endif
         }
         #ifdef TEST
