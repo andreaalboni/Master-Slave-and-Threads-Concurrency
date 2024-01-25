@@ -172,9 +172,10 @@ void from_buffer(monitor_t *mon, vector_t *V) {
 	// if the buffer is empty, set next_size to 0
 	if(mon->capacity==BUFFER_SIZE)
 		mon->next_size=0;
-    //update next_size
-    mon->next_size = mon->buffer[mon->out];
-	printf("download V_%d\n", V->size);
+	// otherwise, set next_size to the size of the next vector in the buffer
+	else
+		mon->next_size=mon->buffer[mon->out];
+	printf("consumed V_%d\n", V->size);
 }
 
 // generate a random vector size
