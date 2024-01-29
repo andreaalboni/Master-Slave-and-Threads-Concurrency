@@ -115,6 +115,9 @@ void monitor_destroy(monitor_t *mon);
 // functions corresponding to thread entry points
 void *thread(void *arg);
 
+// function for control thread
+void *print_wait(void *arg);
+
 // spend_some_time could be useful to waste an unknown amount of CPU cycles, up to a given top 
 double spend_some_time(int);
 
@@ -303,24 +306,18 @@ void download(monitor_t *mon, int k, vector_t *V)
         if (k == 3)
         {
             mon->n_d3++;
-            printf("Thread %lu waiting to download 3\n", pthread_self());
-            printf("\n");
             pthread_cond_wait(&mon->can_download3, &mon->mutex);
             mon->n_d3--;
         }
         else if (k == 5)
         {
             mon->n_d5++;
-            printf("Thread %lu waiting to download 5\n", pthread_self());
-            printf("\n");
             pthread_cond_wait(&mon->can_download5, &mon->mutex);
             mon->n_d5--;
         }
         else if (k == 10)
         {
             mon->n_d10++;
-            printf("Thread %lu waiting to download 10\n", pthread_self());
-            printf("\n");
             pthread_cond_wait(&mon->can_download10, &mon->mutex);
             mon->n_d10--;
         }
@@ -585,6 +582,10 @@ int main(void) {
 
 	printf("Creating %d threads...\n", N_THREADS);
 
+    // control threads creation
+    pthread_t control_thread;
+    pthread_create(&control_thread, NULL, print_wait, NULL);
+
     for (i=0;i<N_THREADS;i++) {
      	sprintf(my_thread_names[i],"t%d",i);
         // create N_THREADS thread with same entry point 
@@ -636,7 +637,7 @@ void *thread(void *arg) {
 		upload(&mon,&Vout);
 		// printf("Thread %s updated buffer. ", name);
 		// printf("Monitor sanity checked %s\n", sanity_check(&mon)?"passed":"failed");
-		// show_buffer(&mon);
+		show_buffer(&mon);
             
         // //input to go on with the program
         // printf("Press enter to continue\n");
@@ -647,6 +648,26 @@ void *thread(void *arg) {
 	printf("Thread %s finished.\n", name);
 
 	pthread_exit(NULL);
+}
+
+// CONTROL THREAD
+void *print_wait(void *arg)
+{
+    char *name=(char *)arg;
+    FOREVER
+    {
+        #ifdef FVF
+        printf("Number of thread in upload waiting queue: %d\n", mon.n_u);
+        printf("Number of thread in download waiting queue: list_3= %d list_5= %d list_10=%d\n", mon.n_d3, mon.n_d5, mon.n_d10);
+        #endif
+
+        #ifndef FVF
+        printf("Number of thread in waiting queue: list_3= %d list_5= %d list_10=%d\n", mon.n_u3, mon.n_u5, mon.n_u10);
+        printf("Number of thread in download waiting queue: list_3= %d list_5= %d list_10=%d\n", mon.n_d3, mon.n_d5, mon.n_d10);
+        #endif
+
+        spend_some_time(MIN_LOOPS+rand()%(WAIT_LOOPS+1));
+    }
 }
 
 // AUXILIARY FUNCTIONS
