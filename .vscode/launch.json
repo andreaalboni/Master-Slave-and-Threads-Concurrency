@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/home/giorgio/OperatingSystem/rts_ws",
-      "program": "/home/giorgio/OperatingSystem/rts_ws/build/Debug/outDebug",
+      "cwd": "/home/giorgio/OperatingSystem/rts_ws/A2",
+      "program": "/home/giorgio/OperatingSystem/rts_ws/A2/build/Release/outRelease",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

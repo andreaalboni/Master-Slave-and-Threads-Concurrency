@@ -18,9 +18,9 @@
 #define MIN_LOOPS 5
 
 //define policies
-// #define FVF
+#define FVF
 // #define SVF
-#define LVF
+// #define LVF
 
 //#define TEST // uncomment to test wait time
 
@@ -325,12 +325,6 @@ void download(monitor_t *mon, int k, vector_t *V)
             mon->n_d10--;
         }
 
-        //se buffer is empty print message
-        if (mon->next_size == 0)
-        {
-            printf("Buffer is empty\n");
-            printf("\n");
-        }
     }
     from_buffer(mon, V);
 
@@ -390,7 +384,7 @@ void upload(monitor_t *mon, vector_t *V)
 
     #ifndef FVF
         // Shortest Vector First or Longest Vector First 
-        while(mon->capacity < size_of(V))
+        while(mon->capacity < size_of(V) || mon->n_u3 > 0 || mon->n_u5 > 0 || mon->n_u10 > 0)
         {   
             #ifdef TEST
             struct timespec start, end;
