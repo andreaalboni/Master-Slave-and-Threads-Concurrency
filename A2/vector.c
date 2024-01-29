@@ -333,15 +333,15 @@ void download(monitor_t *mon, int k, vector_t *V)
         // Shortest Vector First to upload
         if (mon->n_u3 > 0 && mon->capacity >= 3)
         {
-            pthread_cond_signal(&mon->can_upload3);
+            pthread_cond_broadcast(&mon->can_upload3);
         }
         else if (mon->n_u5 > 0 && mon->capacity >= 5)
         {
-            pthread_cond_signal(&mon->can_upload5);
+            pthread_cond_broadcast(&mon->can_upload5);
         }
         else if (mon->n_u10 > 0  && mon->capacity >= 10)
         {
-            pthread_cond_signal(&mon->can_upload10);
+            pthread_cond_broadcast(&mon->can_upload10);
         }
 
     #endif
@@ -351,15 +351,15 @@ void download(monitor_t *mon, int k, vector_t *V)
         // Longest Vector First to upload
         if (mon->n_u10 > 0 && mon->capacity >= 10)
         {
-            pthread_cond_signal(&mon->can_upload10);
+            pthread_cond_broadcast(&mon->can_upload10);
         }
         else if (mon->n_u5 > 0 && mon->capacity >= 5)
         {
-            pthread_cond_signal(&mon->can_upload5);
+            pthread_cond_broadcast(&mon->can_upload5);
         }
         else if (mon->n_u3 > 0 && mon->capacity >= 3)
         {
-            pthread_cond_signal(&mon->can_upload3);
+            pthread_cond_broadcast(&mon->can_upload3);
         }
 
     #endif
