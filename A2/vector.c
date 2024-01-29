@@ -659,11 +659,14 @@ void *print_wait(void *arg)
         #ifdef FVF
         printf("Number of thread in upload waiting queue: %d\n", mon.n_u);
         printf("Number of thread in download waiting queue: list_3= %d list_5= %d list_10=%d\n", mon.n_d3, mon.n_d5, mon.n_d10);
+        show_buffer(&mon);
         #endif
 
         #ifndef FVF
-        printf("Number of thread in waiting queue: list_3= %d list_5= %d list_10=%d\n", mon.n_u3, mon.n_u5, mon.n_u10);
+        printf("Number of thread in upload waiting queue: list_3= %d list_5= %d list_10=%d\n", mon.n_u3, mon.n_u5, mon.n_u10);
         printf("Number of thread in download waiting queue: list_3= %d list_5= %d list_10=%d\n", mon.n_d3, mon.n_d5, mon.n_d10);
+        show_buffer(&mon);
+        printf("\n");
         #endif
 
         spend_some_time(MIN_LOOPS+rand()%(WAIT_LOOPS+1));
