@@ -18,8 +18,8 @@
 #define MIN_LOOPS 5
 
 //define policies
-#define FVF
-// #define SVF
+// #define FVF
+#define SVF
 // #define LVF
 
 //#define TEST // uncomment to test wait time
@@ -659,7 +659,7 @@ void *print_wait(void *arg)
         #ifdef FVF
         printf("Number of thread in upload waiting queue: %d\n", mon.n_u);
         printf("Number of thread in download waiting queue: list_3= %d list_5= %d list_10=%d\n", mon.n_d3, mon.n_d5, mon.n_d10);
-        show_buffer(&mon);
+        //show_buffer(&mon);
         #endif
 
         #ifndef FVF
