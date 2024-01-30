@@ -4,9 +4,6 @@
 #include <pthread.h>
 #include <sys/types.h>
 
-// library for calculating wait time
-#include <time.h>
-
 // CONSTANTS AND MACROS
 // for readability
 #define N_THREADS 15
