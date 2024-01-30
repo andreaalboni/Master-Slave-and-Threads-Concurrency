@@ -48,11 +48,6 @@ typedef struct vector_t {
 	int data[MAX_VSIZE];
 } vector_t;
 
-typedef enum {
-  false = 0,
-  true = 1
-} bool;
-
 typedef struct matrix_t {
 	int n, m;
 	int data[MAX_VSIZE][MAX_VSIZE];
@@ -92,7 +87,7 @@ typedef struct monitor_t {
     #ifdef FVF
     // synchronization variables and states for FVF
     pthread_cond_t can_upload[N_THREADS];
-    bool turn[N_THREADS];
+    boolean turn[N_THREADS];
     int index_in, index_served, n_u; // index of the next thread to upload
     #endif
 
@@ -372,7 +367,7 @@ void download(monitor_t *mon, int k, vector_t *V)
         // First Come First Served to upload
         if (mon->n_u > 0 && mon->capacity >= 10)
         {
-            mon->turn[mon->index_served] = true;
+            mon->turn[mon->index_served] = TRUE;
             pthread_cond_signal(&mon->can_upload[mon->index_served]);
             mon->index_served = (mon->index_served + 1) % N_THREADS;
         }
@@ -449,10 +444,8 @@ void upload(monitor_t *mon, vector_t *V)
             
             mon->n_u ++;
             mon->index_in = (mon->index_in + 1) % N_THREADS;
-            mon->turn[mon->index_in] = false;
+            mon->turn[mon->index_in] = FALSE;
             pthread_cond_wait(&mon->can_upload[mon->index_in], &mon->mutex);
-            printf("Served by thread %d\n", (mon->index_served-1)%N_THREADS);
-            printf("Status of turn: %d\n", mon->turn[(mon->index_served-1)%N_THREADS]);
             mon->n_u --;
 
             #ifdef TEST
@@ -475,7 +468,7 @@ void upload(monitor_t *mon, vector_t *V)
         mon->num_iter ++;
         #endif
         to_buffer(mon, V);
-        mon->turn[mon->index_served] = false;
+        mon->turn[mon->index_served] = FALSE;
     
     #endif
 
@@ -523,7 +516,7 @@ void monitor_init(monitor_t *mon)
     for (int i = 0; i < N_THREADS; i++)
     {
         pthread_cond_init(&mon->can_upload[i], NULL);
-        mon->turn[i] = false;
+        mon->turn[i] = FALSE;
     }
     mon->index_served = 0;
     mon->index_in = -1;
