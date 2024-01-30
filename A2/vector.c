@@ -468,7 +468,7 @@ void upload(monitor_t *mon, vector_t *V)
         mon->num_iter ++;
         #endif
         to_buffer(mon, V);
-        mon->turn[mon->index_served] = FALSE;
+        mon->turn[(mon->index_served-1)%N_THREADS] = FALSE;
     
     #endif
 
