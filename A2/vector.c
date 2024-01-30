@@ -18,7 +18,7 @@
 #define MIN_LOOPS 5
 
 //define policies
- #define FVF
+#define FVF
 // #define SVF
 // #define LVF
 
@@ -89,6 +89,7 @@ typedef struct monitor_t {
     pthread_cond_t can_upload[N_THREADS];
     boolean turn[N_THREADS];
     int index_in, index_served, n_u; // index of the next thread to upload
+    int next_size_upload[N_THREADS];
     #endif
 
     #ifdef TEST
@@ -365,7 +366,7 @@ void download(monitor_t *mon, int k, vector_t *V)
     #ifdef FVF
 
         // First Come First Served to upload
-        if (mon->n_u > 0 && mon->capacity >= 10)
+        if (mon->n_u > 0 && mon->capacity >= mon->next_size_upload[mon->index_served])
         {
             mon->turn[mon->index_served] = TRUE;
             pthread_cond_signal(&mon->can_upload[mon->index_served]);
@@ -445,6 +446,7 @@ void upload(monitor_t *mon, vector_t *V)
             mon->n_u ++;
             mon->index_in = (mon->index_in + 1) % N_THREADS;
             mon->turn[mon->index_in] = FALSE;
+            mon->next_size_upload[mon->index_in] = size_of(V);
             pthread_cond_wait(&mon->can_upload[mon->index_in], &mon->mutex);
             mon->n_u --;
 
@@ -468,7 +470,7 @@ void upload(monitor_t *mon, vector_t *V)
         mon->num_iter ++;
         #endif
         to_buffer(mon, V);
-        mon->turn[(mon->index_served-1)%N_THREADS] = FALSE;
+        mon->turn[mon->index_served] = FALSE;
     
     #endif
 
@@ -517,6 +519,7 @@ void monitor_init(monitor_t *mon)
     {
         pthread_cond_init(&mon->can_upload[i], NULL);
         mon->turn[i] = FALSE;
+        mon->next_size_upload[i] = 0;
     }
     mon->index_served = 0;
     mon->index_in = -1;
@@ -589,7 +592,7 @@ int main(void) {
 
     // control threads creation
     pthread_t control_thread;
-    //pthread_create(&control_thread, NULL, print_wait, NULL);
+    pthread_create(&control_thread, NULL, print_wait, NULL);
 
     for (i=0;i<N_THREADS;i++) {
      	sprintf(my_thread_names[i],"t%d",i);
