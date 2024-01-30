@@ -18,9 +18,9 @@
 #define MIN_LOOPS 5
 
 //define policies
-// #define FVF
+#define FVF
 // #define SVF
-#define LVF
+// #define LVF
 
 //#define TEST // uncomment to test wait time
 
@@ -87,7 +87,7 @@ typedef struct monitor_t {
     #ifdef FVF
     // synchronization variables and states for FVF
     pthread_cond_t can_upload[N_THREADS];
-    int index_in, index_served, n_u; // index of the next thread to upload
+    int index_in, index_out, n_u; // index of the next thread to upload
     #endif
 
     #ifdef TEST
@@ -366,8 +366,8 @@ void download(monitor_t *mon, int k, vector_t *V)
         // First Come First Served to upload
         if (mon->n_u > 0 && mon->capacity >= 10)
         {
-            pthread_cond_signal(&mon->can_upload[mon->index_served]);
-            mon->index_served = (mon->index_served + 1) % N_THREADS;
+            pthread_cond_signal(&mon->can_upload[mon->index_out]);
+            mon->index_out = (mon->index_out + 1) % N_THREADS;
         }
 
     #endif
@@ -513,7 +513,7 @@ void monitor_init(monitor_t *mon)
     {
         pthread_cond_init(&mon->can_upload[i], NULL);
     }
-    mon->index_served = 0;
+    mon->index_out = 0;
     mon->index_in = -1;
     mon->n_u = 0;
 
@@ -659,7 +659,7 @@ void *print_wait(void *arg)
         #ifdef FVF
         printf("Number of thread in upload waiting queue: %d\n", mon.n_u);
         printf("Number of thread in download waiting queue: list_3= %d list_5= %d list_10=%d\n", mon.n_d3, mon.n_d5, mon.n_d10);
-        //show_buffer(&mon);
+        show_buffer(&mon);
         #endif
 
         #ifndef FVF
