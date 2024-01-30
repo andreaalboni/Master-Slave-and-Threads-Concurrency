@@ -22,8 +22,6 @@
 // #define SVF
 #define LVF
 
-//#define TEST // uncomment to test wait time
-
 //one of the policies must be defined
 #if !defined(FVF) && !defined(SVF) && !defined(LVF)
     #error "One of the policies must be defined"
