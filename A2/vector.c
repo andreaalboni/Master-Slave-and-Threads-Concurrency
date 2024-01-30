@@ -18,9 +18,9 @@
 #define MIN_LOOPS 5
 
 //define policies
-// #define FVF
+ #define FVF
 // #define SVF
-#define LVF
+// #define LVF
 
 //#define TEST // uncomment to test wait time
 
@@ -47,6 +47,11 @@ typedef struct vector_t {
 	int size;
 	int data[MAX_VSIZE];
 } vector_t;
+
+typedef enum {
+  false = 0,
+  true = 1
+} bool;
 
 typedef struct matrix_t {
 	int n, m;
@@ -87,6 +92,7 @@ typedef struct monitor_t {
     #ifdef FVF
     // synchronization variables and states for FVF
     pthread_cond_t can_upload[N_THREADS];
+    bool turn[N_THREADS];
     int index_in, index_served, n_u; // index of the next thread to upload
     #endif
 
@@ -366,6 +372,7 @@ void download(monitor_t *mon, int k, vector_t *V)
         // First Come First Served to upload
         if (mon->n_u > 0 && mon->capacity >= 10)
         {
+            mon->turn[mon->index_served] = true;
             pthread_cond_signal(&mon->can_upload[mon->index_served]);
             mon->index_served = (mon->index_served + 1) % N_THREADS;
         }
@@ -433,7 +440,7 @@ void upload(monitor_t *mon, vector_t *V)
     #ifdef FVF
 
         // First Come First Served
-        while(mon->n_u > 0 || mon->capacity < size_of(V))
+        while( (mon->n_u > 0 && !mon->turn[(mon->index_served-1)%N_THREADS]) || mon->capacity < size_of(V))
         {
             #ifdef TEST
             struct timespec start, end;
@@ -442,7 +449,10 @@ void upload(monitor_t *mon, vector_t *V)
             
             mon->n_u ++;
             mon->index_in = (mon->index_in + 1) % N_THREADS;
+            mon->turn[mon->index_in] = false;
             pthread_cond_wait(&mon->can_upload[mon->index_in], &mon->mutex);
+            printf("Served by thread %d\n", (mon->index_served-1)%N_THREADS);
+            printf("Status of turn: %d\n", mon->turn[(mon->index_served-1)%N_THREADS]);
             mon->n_u --;
 
             #ifdef TEST
@@ -465,6 +475,7 @@ void upload(monitor_t *mon, vector_t *V)
         mon->num_iter ++;
         #endif
         to_buffer(mon, V);
+        mon->turn[mon->index_served] = false;
     
     #endif
 
@@ -512,6 +523,7 @@ void monitor_init(monitor_t *mon)
     for (int i = 0; i < N_THREADS; i++)
     {
         pthread_cond_init(&mon->can_upload[i], NULL);
+        mon->turn[i] = false;
     }
     mon->index_served = 0;
     mon->index_in = -1;
@@ -584,7 +596,7 @@ int main(void) {
 
     // control threads creation
     pthread_t control_thread;
-    pthread_create(&control_thread, NULL, print_wait, NULL);
+    //pthread_create(&control_thread, NULL, print_wait, NULL);
 
     for (i=0;i<N_THREADS;i++) {
      	sprintf(my_thread_names[i],"t%d",i);
