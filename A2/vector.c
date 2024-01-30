@@ -19,8 +19,8 @@
 
 //define policies
 // #define FVF
-#define SVF
-// #define LVF
+// #define SVF
+#define LVF
 
 //#define TEST // uncomment to test wait time
 
@@ -381,7 +381,7 @@ void upload(monitor_t *mon, vector_t *V)
 
     #ifndef FVF
         // Shortest Vector First or Longest Vector First 
-        while(mon->capacity < size_of(V) || mon->n_u3 > 0 || mon->n_u5 > 0 || mon->n_u10 > 0)
+        while(mon->capacity < size_of(V))
         {   
             #ifdef TEST
             struct timespec start, end;
