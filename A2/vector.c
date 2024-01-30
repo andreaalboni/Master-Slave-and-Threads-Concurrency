@@ -18,9 +18,9 @@
 #define MIN_LOOPS 5
 
 //define policies
-#define FVF
+// #define FVF
 // #define SVF
-// #define LVF
+#define LVF
 
 //#define TEST // uncomment to test wait time
 
@@ -90,14 +90,6 @@ typedef struct monitor_t {
     boolean turn[N_THREADS];
     int index_in, index_served, n_u; // index of the next thread to upload
     int next_size_upload[N_THREADS];
-    #endif
-
-    #ifdef TEST
-    // variable for calculating wait time
-    double wait_time;
-    int num_wait;
-    int num_iter;
-    int max_wait;
     #endif
 
 } monitor_t;
@@ -409,26 +401,7 @@ void upload(monitor_t *mon, vector_t *V)
                 pthread_cond_wait(&mon->can_upload3, &mon->mutex);
                 mon->n_u3--;
             }
-
-            #ifdef TEST
-            clock_gettime(CLOCK_REALTIME, &end);
-            mon->wait_time += (end.tv_nsec - start.tv_nsec);
-            mon->num_wait ++;
-            // implement max wait time
-            if ((end.tv_nsec - start.tv_nsec) > mon->max_wait)
-            {
-                mon->max_wait = (end.tv_nsec - start.tv_nsec);
-            }
-            printf("####################################### Thread %lu waited %lu nanoseconds to upload\n", pthread_self(), (end.tv_nsec - start.tv_nsec));
-            printf("\n");
-            printf("####################################### Average wait time: %f nanoseconds in %d wait iteration, %d total iteration\n", mon->wait_time / mon->num_wait, mon->num_wait, mon->num_iter);
-            printf("\n");
-            printf("####################################### Max wait time: %d nanoseconds\n", mon->max_wait);
-            #endif
         }
-        #ifdef TEST
-        mon->num_iter ++;
-        #endif
         to_buffer(mon, V);
     
     #endif
@@ -437,38 +410,14 @@ void upload(monitor_t *mon, vector_t *V)
 
         // First Come First Served
         while( (mon->n_u > 0 && !mon->turn[(mon->index_served-1)%N_THREADS]) || mon->capacity < size_of(V))
-        {
-            #ifdef TEST
-            struct timespec start, end;
-            clock_gettime(CLOCK_REALTIME, &start);
-            #endif
-            
+        {    
             mon->n_u ++;
             mon->index_in = (mon->index_in + 1) % N_THREADS;
             mon->turn[mon->index_in] = FALSE;
             mon->next_size_upload[mon->index_in] = size_of(V);
             pthread_cond_wait(&mon->can_upload[mon->index_in], &mon->mutex);
             mon->n_u --;
-
-            #ifdef TEST
-            clock_gettime(CLOCK_REALTIME, &end);
-            mon->wait_time += (end.tv_nsec - start.tv_nsec);
-            mon->num_wait ++;
-            // implement max wait time
-            if ((end.tv_nsec - start.tv_nsec) > mon->max_wait)
-            {
-                mon->max_wait = (end.tv_nsec - start.tv_nsec);
-            }
-            printf("####################################### Thread %lu waited %lu nanoseconds to upload\n", pthread_self(), (end.tv_nsec - start.tv_nsec));
-            printf("\n");
-            printf("####################################### Average wait time: %f nanoseconds in %d wait iteration, %d total iteration\n", mon->wait_time / mon->num_wait, mon->num_wait, mon->num_iter);
-            printf("\n");
-            printf("####################################### Max wait time: %d nanoseconds\n", mon->max_wait);
-            #endif
         }
-        #ifdef TEST
-        mon->num_iter ++;
-        #endif
         to_buffer(mon, V);
         mon->turn[mon->index_served] = FALSE;
     
@@ -531,14 +480,6 @@ void monitor_init(monitor_t *mon)
     mon->out = 0;
     mon->next_size = 0;
     mon->capacity = BUFFER_SIZE;
-
-    #ifdef TEST
-    // initialize variable for calculating wait time
-    mon->wait_time = 0;
-    mon->num_wait = 0;
-    mon->num_iter = 0;
-    mon->max_wait = 0;
-    #endif
 }
 
 
@@ -667,7 +608,7 @@ void *print_wait(void *arg)
         #ifdef FVF
         printf("Number of thread in upload waiting queue: %d\n", mon.n_u);
         printf("Number of thread in download waiting queue: list_3= %d list_5= %d list_10=%d\n", mon.n_d3, mon.n_d5, mon.n_d10);
-        //show_buffer(&mon);
+        show_buffer(&mon);
         #endif
 
         #ifndef FVF
