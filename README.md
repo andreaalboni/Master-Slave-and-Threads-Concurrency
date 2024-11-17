@@ -1,3 +1,5 @@
+# Real Time System for Automation
+
 ## Assignment 1
 
 Write a master-slave application that receives inputs from a user (via the terminal) and behaves in the following way: 
