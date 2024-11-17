@@ -23,6 +23,6 @@ As far as the prioritization of uploads, there are three possible policies:
 - LVF: if more than a thread is waiting to upload, threads uploading the longest output vector have priority
 - FVF: if more than a thread is waiting to upload, threads are services FCFS
 
-## Author
+## Authors
 
   - **Andrea Alboni, Emanuele Monsellato, Giorgio Medico** 
