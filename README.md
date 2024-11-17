@@ -29,3 +29,7 @@ FVF: if more than a thread is waiting to upload, threads are services FCFS
 Analyze the problem. Use the template provided below to implement the upload and download monitor methods, as described above, as well as the methods to initialize and destroy the monitor. Be sure to avoid any race condition (in other words, the buffer must function correctly). Moreover, concurrency should be preserved: threads should proceed concurrently whenever possible and not block unnecessarily.
 
 Experiment with three different policies, and determine if there are differences among them, in terms of efficiency, starvation or deadlock (you are free to carry out the analysis in the way you consider appropriate)
+
+## Author
+
+  - **Andrea Alboni, Emanuele Monsellato, Giorgio Medico** 
