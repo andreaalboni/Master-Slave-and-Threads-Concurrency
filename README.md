@@ -6,7 +6,7 @@ Write a master-slave application that receives inputs from a user (via the termi
 After the master terminates, the slave displays the content of the buffer and then terminates.
 
 
-## Assignemnt 2
+## Assignment 2
 N_THREADS threads use a buffer to support concurrent operations on vectors of integers. In particular, each thread is associated with a matrix M of size m x k. The matrix defines the size of the vector that the thread can operate on: so the thread will receive in input a vector of size at most k, and output a vector of size m. Threads fetch the input vector to process from the buffer and then store the result back to the buffer. The cyclic behaviour of a thread is:
 1. fetch a vector of size at most k, Vk, from the buffer, using method download(k,Vin),
 2. produce a vector Vm of size m, using a method multiply(M, Vin, Vout),
