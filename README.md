@@ -26,5 +26,6 @@ As far as the prioritization of uploads, there are three possible policies:
 - FVF: if more than a thread is waiting to upload, threads are services FCFS
 
 ## Authors
-
-  - **Andrea Alboni, Emanuele Monsellato, Giorgio Medico** 
+  - Andrea Alboni
+  - Emanuele Monsellato
+  - Giorgio Medico 
